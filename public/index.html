@@ -1090,7 +1090,6 @@ main { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
       <div class="auth-error" id="authErr2"></div>
       <button class="auth-btn" id="verifyOtpBtn" onclick="verifyOtp()">Verify Code</button>
       <div class="auth-hint" style="margin-top:8px">
-        <span id="devHint" style="display:none;color:var(--yellow)">DEV MODE: Check server console for OTP</span>
         <span id="resendLink" style="cursor:pointer;color:var(--accent)" onclick="backToEmail()">← Use different email / resend</span>
       </div>
     </div>
@@ -3142,7 +3141,6 @@ async function requestOtp() {
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Failed to send'; btn.disabled = false; btn.textContent = 'Send Verification Code →'; return; }
     document.getElementById('otpEmailLabel').textContent = email;
-    if (data.dev) document.getElementById('devHint').style.display = 'inline';
     document.getElementById('authStep1').classList.remove('active');
     document.getElementById('authStep2').classList.add('active');
     document.getElementById('o0').focus();
