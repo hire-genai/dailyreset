@@ -3138,7 +3138,7 @@ async function requestOtp() {
   }
   btn.disabled = true; btn.textContent = 'Sending…';
   try {
-    const res  = await fetch('/auth/request-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
+    const res  = await fetch('/api/auth/request-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email }) });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Failed to send'; btn.disabled = false; btn.textContent = 'Send Verification Code →'; return; }
     document.getElementById('otpEmailLabel').textContent = email;
@@ -3183,7 +3183,7 @@ async function verifyOtp() {
   if (code.length !== 6) { errEl.textContent = 'Enter all 6 digits'; return; }
   btn.disabled = true; btn.textContent = 'Verifying…';
   try {
-    const res  = await fetch('/auth/verify-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, code }) });
+    const res  = await fetch('/api/auth/verify-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email, code }) });
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error || 'Invalid code'; btn.disabled = false; btn.textContent = 'Verify Code'; return; }
     jwtToken = data.token;
