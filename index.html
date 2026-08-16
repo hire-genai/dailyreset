@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Reset — Belly Fat Reset Tracker</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #22263a;
+    --border: #2e3350;
+    --accent: #6c63ff;
+    --accent2: #ff6584;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+    --text: #e2e8f0;
+    --muted: #8892b0;
+    --radius: 14px;
+    --shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+  /* ── NAV ── */
+  nav {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    position: sticky; top: 0; z-index: 100;
+    box-shadow: var(--shadow);
+  }
+  .brand { font-size: 1.1rem; font-weight: 700; color: var(--accent); letter-spacing: -0.5px; }
+  .brand span { color: var(--text); }
+  .nav-tabs { display: flex; gap: 4px; }
+  .nav-tab {
+    background: none; border: none; color: var(--muted);
+    padding: 8px 16px; border-radius: 8px; cursor: pointer;
+    font-size: 0.85rem; font-weight: 500; transition: all 0.2s;
+  }
+  .nav-tab:hover { background: var(--surface2); color: var(--text); }
+  .nav-tab.active { background: var(--accent); color: #fff; }
+  .date-pill {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 6px 14px;
+    font-size: 0.8rem; color: var(--muted);
+    cursor: pointer; display: flex; align-items: center; gap: 6px;
+  }
+  .date-pill input[type=date] {
+    background: none; border: none; color: var(--text);
+    font-size: 0.8rem; cursor: pointer; outline: none;
+  }
+
+  /* ── LAYOUT ── */
+  main { max-width: 1200px; margin: 0 auto; padding: 28px 20px; }
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── GRID ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+  @media(max-width:900px) {
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: 1fr 1fr; }
+    .grid-4 { grid-template-columns: 1fr 1fr; }
+    .nav-tabs { gap: 2px; }
+    .nav-tab { padding: 8px 10px; font-size: 0.78rem; }
+  }
+  @media(max-width:600px) {
+    .grid-3,.grid-4 { grid-template-columns: 1fr; }
+  }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    box-shadow: var(--shadow);
+  }
+  .card-title {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted); margin-bottom: 14px;
+  }
+
+  /* ── STAT TILES ── */
+  .stat-tile {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+  }
+  .stat-tile .label { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+  .stat-tile .value { font-size: 2rem; font-weight: 700; line-height: 1.1; margin: 6px 0 2px; }
+  .stat-tile .sub { font-size: 0.78rem; color: var(--muted); }
+  .stat-tile.green .value { color: var(--green); }
+  .stat-tile.yellow .value { color: var(--yellow); }
+  .stat-tile.blue .value { color: var(--blue); }
+  .stat-tile.purple .value { color: var(--accent); }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .section-header h2 { font-size: 1.1rem; font-weight: 700; }
+  .badge {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 4px 12px;
+    font-size: 0.75rem; color: var(--muted);
+  }
+
+  /* ── HABIT GROUPS ── */
+  .habit-group { margin-bottom: 24px; }
+  .habit-group-title {
+    font-size: 0.68rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.5px; color: var(--muted);
+    margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+  }
+  .habit-group-title::after {
+    content: ''; flex: 1; height: 1px; background: var(--border);
+  }
+
+  /* ── TASK ITEM ── */
+  .task-item {
+    display: flex; align-items: flex-start; gap: 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 16px;
+    margin-bottom: 8px; cursor: pointer;
+    transition: all 0.2s; user-select: none;
+  }
+  .task-item:hover { border-color: var(--accent); background: var(--surface2); }
+  .task-item.done {
+    opacity: 0.55;
+    border-color: var(--green);
+    background: rgba(34,197,94,0.05);
+  }
+  .task-check {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 2px solid var(--border); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px; transition: all 0.2s;
+  }
+  .task-item.done .task-check {
+    background: var(--green); border-color: var(--green);
+  }
+  .task-check svg { display: none; }
+  .task-item.done .task-check svg { display: block; }
+  .task-body { flex: 1; }
+  .task-name { font-size: 0.92rem; font-weight: 600; }
+  .task-item.done .task-name { text-decoration: line-through; }
+  .task-desc { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+  .task-meta {
+    display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap;
+  }
+  .chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2px 10px;
+    font-size: 0.68rem; color: var(--muted);
+  }
+  .chip.green { background: rgba(34,197,94,0.12); border-color: var(--green); color: var(--green); }
+  .chip.yellow { background: rgba(245,158,11,0.12); border-color: var(--yellow); color: var(--yellow); }
+  .chip.blue { background: rgba(59,130,246,0.12); border-color: var(--blue); color: var(--blue); }
+  .chip.purple { background: rgba(108,99,255,0.12); border-color: var(--accent); color: var(--accent); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-wrap { margin: 16px 0; }
+  .progress-label {
+    display: flex; justify-content: space-between;
+    font-size: 0.78rem; color: var(--muted); margin-bottom: 6px;
+  }
+  .progress-bar {
+    height: 8px; background: var(--surface2);
+    border-radius: 4px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.4s ease;
+  }
+
+  /* ── RING ── */
+  .ring-wrap { display: flex; align-items: center; justify-content: center; padding: 10px 0; }
+  .ring {
+    position: relative; width: 120px; height: 120px;
+  }
+  .ring svg { transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke: var(--surface2); stroke-width: 10; }
+  .ring-fg { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.5s ease; }
+  .ring-label {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+  .ring-pct { font-size: 1.6rem; font-weight: 700; }
+  .ring-sub { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* ── MEAL CARDS ── */
+  .meal-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden; margin-bottom: 16px;
+  }
+  .meal-header {
+    padding: 14px 18px;
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .meal-header h3 { font-size: 0.9rem; font-weight: 700; }
+  .meal-header .time { font-size: 0.75rem; color: var(--muted); }
+  .pfc-steps { padding: 16px 18px; }
+  .pfc-step {
+    display: flex; gap: 14px; align-items: flex-start;
+    padding: 12px 0; border-bottom: 1px solid var(--border);
+  }
+  .pfc-step:last-child { border-bottom: none; }
+  .pfc-letter {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 1rem; flex-shrink: 0;
+  }
+  .pfc-p { background: rgba(59,130,246,0.2); color: var(--blue); }
+  .pfc-f { background: rgba(34,197,94,0.2); color: var(--green); }
+  .pfc-c { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .pfc-items { flex: 1; }
+  .pfc-title { font-size: 0.8rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .pfc-options { font-size: 0.85rem; margin-top: 4px; }
+  .pfc-tip { font-size: 0.74rem; color: var(--muted); margin-top: 4px; font-style: italic; }
+
+  /* ── PREP TASKS ── */
+  .prep-section { margin-bottom: 24px; }
+  .prep-section h3 {
+    font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 1.2px; color: var(--muted); margin-bottom: 10px;
+  }
+  .prep-item {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; border-radius: 10px;
+    background: var(--surface); border: 1px solid var(--border);
+    margin-bottom: 7px; cursor: pointer; transition: all 0.2s;
+  }
+  .prep-item:hover { border-color: var(--accent); }
+  .prep-item.done { opacity: 0.5; background: rgba(34,197,94,0.05); border-color: var(--green); }
+  .prep-item.done .prep-name { text-decoration: line-through; }
+  .prep-check {
+    width: 18px; height: 18px; border-radius: 4px;
+    border: 2px solid var(--border); flex-shrink: 0; margin-top: 2px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .prep-item.done .prep-check { background: var(--green); border-color: var(--green); }
+  .prep-name { font-size: 0.88rem; font-weight: 500; }
+  .prep-note { font-size: 0.74rem; color: var(--muted); margin-top: 2px; }
+
+  /* ── DASHBOARD CHART ── */
+  .chart-wrap { position: relative; height: 200px; }
+  .chart-wrap-sm { position: relative; height: 160px; }
+
+  /* ── WEEK STRIP ── */
+  .week-strip { display: flex; gap: 8px; margin-bottom: 20px; }
+  .week-day {
+    flex: 1; text-align: center; padding: 10px 4px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; transition: all 0.2s;
+  }
+  .week-day:hover { border-color: var(--accent); }
+  .week-day.today { border-color: var(--accent); background: rgba(108,99,255,0.12); }
+  .week-day.selected { background: var(--accent); border-color: var(--accent); }
+  .week-day .wd-name { font-size: 0.62rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; }
+  .week-day.selected .wd-name { color: rgba(255,255,255,0.7); }
+  .week-day .wd-num { font-size: 1rem; font-weight: 700; margin: 2px 0; }
+  .week-day .wd-dot { width: 6px; height: 6px; border-radius: 50%; margin: 0 auto; background: var(--border); }
+  .week-day.has-data .wd-dot { background: var(--green); }
+
+  /* ── WEIGHT LOG ── */
+  .weight-log-row {
+    display: flex; gap: 10px; align-items: center; margin-bottom: 10px;
+  }
+  .weight-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-size: 0.9rem; width: 110px; outline: none;
+    transition: border-color 0.2s;
+  }
+  .weight-input:focus { border-color: var(--accent); }
+  .btn {
+    background: var(--accent); color: #fff; border: none;
+    border-radius: 8px; padding: 10px 18px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: opacity 0.2s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-sm {
+    padding: 6px 12px; font-size: 0.78rem; border-radius: 6px;
+  }
+  .btn-danger { background: var(--red); }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface); border: 1px solid var(--green);
+    color: var(--green); border-radius: 10px; padding: 12px 20px;
+    font-size: 0.85rem; font-weight: 600; opacity: 0;
+    transform: translateY(10px); transition: all 0.3s; z-index: 999;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── HORMONE INSIGHT ── */
+  .hormone-card {
+    background: linear-gradient(135deg, rgba(108,99,255,0.15), rgba(255,101,132,0.1));
+    border: 1px solid rgba(108,99,255,0.3);
+    border-radius: var(--radius); padding: 18px;
+    margin-bottom: 20px;
+  }
+  .hormone-card h3 { font-size: 0.8rem; color: var(--accent); font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+  .hormone-card p { font-size: 0.82rem; color: var(--muted); line-height: 1.6; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px; color: var(--muted); font-size: 0.85rem; }
+
+  /* ── DAY COMPLETE BANNER ── */
+  .complete-banner {
+    background: linear-gradient(135deg, rgba(34,197,94,0.2), rgba(34,197,94,0.05));
+    border: 1px solid var(--green); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 20px; display: none;
+    align-items: center; gap: 14px;
+  }
+  .complete-banner.show { display: flex; }
+  .complete-banner .icon { font-size: 2rem; }
+  .complete-banner h3 { font-size: 0.95rem; font-weight: 700; color: var(--green); }
+  .complete-banner p { font-size: 0.78rem; color: var(--muted); }
+
+  /* Emoji icons */
+  .icon-tag {
+    width: 36px; height: 36px; border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+    background: var(--surface2);
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="brand">Daily<span>Reset</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('dashboard')">Dashboard</button>
+    <button class="nav-tab" onclick="showPage('today')">Today</button>
+    <button class="nav-tab" onclick="showPage('meals')">Meals</button>
+    <button class="nav-tab" onclick="showPage('prep')">Meal Prep</button>
+  </div>
+  <div class="date-pill">
+    📅 <input type="date" id="datePicker" onchange="onDateChange()">
+  </div>
+</nav>
+
+<main>
+
+<!-- ── DASHBOARD PAGE ── -->
+<div class="page active" id="page-dashboard">
+  <div class="section-header" style="margin-bottom:20px">
+    <h2>Weekly Overview</h2>
+    <span class="badge" id="streakBadge">🔥 0 day streak</span>
+  </div>
+
+  <div class="week-strip" id="weekStrip"></div>
+
+  <div class="grid-4" style="margin-bottom:20px" id="statTiles">
+    <div class="stat-tile green">
+      <div class="label">Today's Habits</div>
+      <div class="value" id="todayCount">0/11</div>
+      <div class="sub">completed</div>
+    </div>
+    <div class="stat-tile yellow">
+      <div class="label">Weekly Average</div>
+      <div class="value" id="weekAvg">0%</div>
+      <div class="sub">completion</div>
+    </div>
+    <div class="stat-tile blue">
+      <div class="label">Current Weight</div>
+      <div class="value" id="currentWeight">— kg</div>
+      <div class="sub" id="weightDelta">log your weight</div>
+    </div>
+    <div class="stat-tile purple">
+      <div class="label">Best Streak</div>
+      <div class="value" id="bestStreak">0</div>
+      <div class="sub">days</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-bottom:20px">
+    <div class="card">
+      <div class="card-title">7-Day Completion %</div>
+      <div class="chart-wrap"><canvas id="weekChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Habit Breakdown (Today)</div>
+      <div style="display:flex;align-items:center;gap:20px">
+        <div class="ring-wrap">
+          <div class="ring">
+            <svg width="120" height="120" viewBox="0 0 120 120">
+              <circle class="ring-bg" cx="60" cy="60" r="50"/>
+              <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="50"
+                stroke="url(#ringGrad)"
+                stroke-dasharray="314"
+                stroke-dashoffset="314"/>
+              <defs>
+                <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="#6c63ff"/>
+                  <stop offset="100%" stop-color="#ff6584"/>
+                </linearGradient>
+              </defs>
+            </svg>
+            <div class="ring-label">
+              <div class="ring-pct" id="ringPct">0%</div>
+              <div class="ring-sub">done</div>
+            </div>
+          </div>
+        </div>
+        <div style="flex:1" id="habitBreakdown"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Weight Log -->
+  <div class="card" style="margin-bottom:20px">
+    <div class="card-title">Weight Log</div>
+    <div class="weight-log-row">
+      <input class="weight-input" type="number" id="weightInput" placeholder="kg" step="0.1" min="30" max="300">
+      <button class="btn btn-sm" onclick="logWeight()">Log Weight</button>
+    </div>
+    <div class="chart-wrap-sm"><canvas id="weightChart"></canvas></div>
+  </div>
+
+  <!-- Hormone Info -->
+  <div class="hormone-card">
+    <h3>The Two Hormones Driving Belly Fat</h3>
+    <p>
+      <strong style="color:var(--blue)">Insulin</strong> — spikes every time you eat carbs on an empty stomach, sending your body into fat-storage mode. All 5 daily habits target insulin reduction.<br><br>
+      <strong style="color:var(--accent2)">Cortisol</strong> — your stress hormone, chronically elevated by notifications, poor sleep, and intense cardio. It tells your body to hold onto belly fat "just in case." The evening walk and sleep block keep cortisol low.
+    </p>
+  </div>
+</div>
+
+<!-- ── TODAY PAGE ── -->
+<div class="page" id="page-today">
+  <div class="complete-banner" id="completeBanner">
+    <div class="icon">🎉</div>
+    <div>
+      <h3>Perfect Day! All habits complete!</h3>
+      <p>You've targeted both insulin and cortisol today. Keep it up!</p>
+    </div>
+  </div>
+
+  <div class="section-header">
+    <h2>Daily Habits — <span id="todayLabel" style="color:var(--accent)"></span></h2>
+    <button class="btn btn-sm" onclick="resetDay()" style="background:var(--surface2);color:var(--muted);border:1px solid var(--border)">Reset Day</button>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-label">
+      <span id="progressLabel">0 of 11 habits complete</span>
+      <span id="progressPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="taskList"></div>
+</div>
+
+<!-- ── MEALS PAGE ── -->
+<div class="page" id="page-meals">
+  <div class="section-header" style="margin-bottom:6px">
+    <h2>Vegetarian PFC Meals</h2>
+    <span class="badge">🌱 Plant-based</span>
+  </div>
+  <p style="font-size:0.82rem;color:var(--muted);margin-bottom:20px">
+    Every meal follows: <strong style="color:var(--blue)">Protein first</strong> → <strong style="color:var(--green)">Fiber second</strong> → <strong style="color:var(--yellow)">Carbs last</strong>. This sequence triggers natural GLP-1, reducing insulin spikes.
+  </p>
+
+  <div id="mealsList"></div>
+</div>
+
+<!-- ── PREP PAGE ── -->
+<div class="page" id="page-prep">
+  <div class="section-header" style="margin-bottom:6px">
+    <h2>Meal Prep Checklist</h2>
+    <button class="btn btn-sm" onclick="resetPrep()">Reset All</button>
+  </div>
+  <p style="font-size:0.82rem;color:var(--muted);margin-bottom:20px">
+    Prep once, succeed all week. Check off each task as you complete it.
+  </p>
+
+  <div class="progress-wrap" style="margin-bottom:20px">
+    <div class="progress-label">
+      <span id="prepLabel">0 tasks done</span>
+      <span id="prepPct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prepFill" style="width:0%"></div></div>
+  </div>
+
+  <div id="prepList"></div>
+</div>
+
+</main>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────
+//  DATA
+// ─────────────────────────────────────────────
+const HABITS = [
+  {
+    group: '🌙 Night Before — Prep for Tomorrow',
+    type: 'prep',
+    items: [
+      { id: 'n1', name: 'Soak Breakfast Oats (Overnight)', desc: 'Add ½ cup rolled oats + ½ cup Greek yogurt + 1 tbsp chia seeds in a jar. Refrigerate. Ready to eat cold or warm in the morning.', tags: [['8 hr soak','yellow'],['Tomorrow breakfast','blue']], icon: '🥣', buy: ['Rolled oats','Greek yogurt','Chia seeds'] },
+      { id: 'n2', name: 'Soak Lunch Legumes — Chickpeas / Rajma / Kala Chana', desc: 'Cover ½ cup legumes with 1.5 cups water. Leave overnight 8 hrs. Skip if using moong dal or ready-cooked — they need no soaking.', tags: [['8 hr soak','yellow'],['Tomorrow lunch','blue']], icon: '🫘', buy: ['Chickpeas / Rajma / Kala chana (pick one)'] },
+      { id: 'n3', name: 'Fridge Stock Check — Breakfast Protein', desc: 'Confirm you have at least one of: Greek yogurt (150g) · Paneer (100g) · Tofu (100g)', tags: [['Stock check','purple']], icon: '🧊', buy: ['Greek yogurt 150g','OR Paneer 100g','OR Tofu 100g'] },
+      { id: 'n4', name: 'Fridge Stock Check — Fresh Vegetables', desc: 'Confirm you have: spinach (handful) + cucumber (1) + cherry tomatoes (handful) for tomorrow\'s fiber courses', tags: [['Stock check','purple']], icon: '🥬', buy: ['Spinach','Cucumber','Cherry tomatoes','Broccoli (for dinner)'] },
+    ]
+  },
+  {
+    group: '🌅 Morning',
+    items: [
+      { id: 'h1', name: 'Fasted Morning Walk', desc: '10–15 minutes at a comfortable pace before eating anything', tags: [['Insulin','green'],['10–15 min','blue'],['Before Breakfast','yellow']], icon: '🚶' },
+      { id: 'h2', name: 'Weigh Yourself', desc: 'Step on the scale first thing after your walk — note the number in the dashboard', tags: [['Tracking','blue']], icon: '⚖️' },
+    ]
+  },
+  {
+    group: '🍳 Breakfast Prep — 5 min Before Eating',
+    type: 'prep',
+    items: [
+      { id: 'b1', name: 'Take Yogurt / Paneer Out of Fridge', desc: 'Leave on counter 10 min before eating — room-temp protein digests better than fridge-cold', tags: [['10 min before eating','yellow']], icon: '🥛' },
+      { id: 'b2', name: 'Lay Out All 3 PFC Courses Before Starting', desc: 'Plate protein · fiber veg · carb separately before you begin so you eat in correct order without second-guessing', tags: [['PFC setup','blue']], icon: '🍽️' },
+    ]
+  },
+  {
+    group: '🍳 Breakfast — PFC Lock',
+    items: [
+      { id: 'h3', name: 'Eat Protein First', desc: 'Greek yogurt / paneer / tofu — finish entirely before touching anything else', tags: [['Protein','blue'],['GLP-1','purple']], icon: 'P' },
+      { id: 'h4', name: 'Eat Fiber Second', desc: 'Spinach, cucumber, tomatoes — before any carbs', tags: [['Fiber','green']], icon: 'F' },
+      { id: 'h5', name: 'Eat Carbs Last', desc: 'Overnight oats / whole-wheat toast / fruit — only after protein + fiber done', tags: [['Insulin control','yellow']], icon: 'C' },
+      { id: 'h6', name: 'Post-Breakfast Squat Reset', desc: '10 air squats immediately after finishing — opens GLUT transporters, blood sugar goes into muscles not fat', tags: [['60 sec','green'],['Blood sugar','yellow']], icon: '🏋️' },
+    ]
+  },
+  {
+    group: '🕙 Mid-Morning — Lunch Prep (start by 11 AM)',
+    type: 'prep',
+    items: [
+      { id: 'l1', name: 'Drain & Rinse Soaked Legumes', desc: 'Drain last night\'s soaked chickpeas/rajma. Add fresh water + pinch of salt + bay leaf. Ready to pressure cook.', tags: [['Only if soaked','yellow'],['2 min','green']], icon: '🫘' },
+      { id: 'l2', name: 'Pressure Cook Dal / Legumes (start by 11 AM)', desc: 'Soaked chana: 3–4 whistles (20 min). Moong/masoor dal: 2 whistles (15 min). Add turmeric + jeera. Start NOW for 1 PM lunch.', tags: [['20–25 min cook','blue'],['Lunch protein','blue']], icon: '🍲', buy: ['Dal / Moong dal (if not using soaked legumes)','Turmeric','Cumin seeds','Garlic'] },
+      { id: 'l3', name: 'Cook Brown Rice or Quinoa (start by 11:30 AM)', desc: 'Rinse ½ cup brown rice, add 1.25 cups water. Boil then simmer 30 min covered. Or use quinoa: 15 min only.', tags: [['30 min cook','blue'],['Lunch carb','yellow']], icon: '🍚', buy: ['Brown rice / Quinoa'] },
+      { id: 'l4', name: 'Wash & Chop Kachumber Salad', desc: 'Cucumber + tomato + onion + lemon + coriander. 5 min. Set aside in bowl — this is your fiber course.', tags: [['5 min prep','green'],['Lunch fiber','green']], icon: '🥗', buy: ['Cucumber','Tomato','Onion','Lemon','Coriander'] },
+    ]
+  },
+  {
+    group: '☀️ Lunch — PFC Lock',
+    items: [
+      { id: 'h7', name: 'PFC Lunch (Protein → Fiber → Carbs)', desc: 'Dal/chickpeas/paneer → kachumber salad/sabzi → brown rice or 1–2 rotis', tags: [['PFC Order','blue']], icon: '🥗' },
+      { id: 'h8', name: 'Post-Lunch Squat Reset', desc: '10 air squats right after finishing lunch — 60 seconds', tags: [['60 sec','green']], icon: '🏋️' },
+    ]
+  },
+  {
+    group: '🌆 Afternoon — Dinner Prep (by 5 PM)',
+    type: 'prep',
+    items: [
+      { id: 'd1', name: 'Decide Tonight\'s Dinner Protein', desc: 'Choose one: Moong dal soup · Paneer bhurji · Tofu stir-fry · Soy chunks curry · Leftover rajma from lunch', tags: [['Decide by 4 PM','purple']], icon: '🤔', buy: ['Paneer 100g  OR  Tofu 100g  OR  Soy chunks'] },
+      { id: 'd2', name: 'Marinate Tofu / Paneer (if using)', desc: 'Cube + mix with: turmeric, cumin, coriander powder, chilli, lemon juice, 1 tsp oil. Rest 30 min. Then bake 200°C / pan-fry.', tags: [['30 min marinate','yellow'],['Optional','blue']], icon: '🫙', buy: ['Turmeric','Cumin powder','Coriander powder','Lemon'] },
+      { id: 'd3', name: 'Wash & Roughly Chop Dinner Vegetables', desc: 'Pick 2: zucchini / capsicum / broccoli / cauliflower / spinach. Chop roughly — this becomes your fiber course at dinner.', tags: [['10 min','green'],['Dinner fiber','green']], icon: '🥦', buy: ['Zucchini / Capsicum / Broccoli / Cauliflower'] },
+      { id: 'd4', name: 'Soak Tomorrow\'s Breakfast Oats (evening batch)', desc: 'If you didn\'t do last night\'s soak: oats + yogurt + chia in a jar. In fridge by 5 PM = ready by morning.', tags: [['Tomorrow breakfast','purple'],['2 min now','green']], icon: '🥣' },
+    ]
+  },
+  {
+    group: '🌙 Dinner & Evening',
+    items: [
+      { id: 'h9', name: 'PFC Dinner (Protein → Fiber → Carbs)', desc: 'Dal/tofu/paneer → roasted/stir-fried vegetables → small roti or skip carbs entirely', tags: [['PFC Order','blue'],['Finish by 7:30 PM','yellow']], icon: '🍲' },
+      { id: 'h10', name: 'Post-Dinner Squat Reset', desc: '10 air squats after dinner — the most important squat set of the day', tags: [['60 sec','green']], icon: '🏋️' },
+      { id: 'h11', name: 'Evening Cortisol Cut Walk', desc: '10–15 minute walk outside after dinner — no phone, reduces cortisol, sets recovery mode', tags: [['Cortisol','purple'],['Family time','yellow'],['10–15 min','blue']], icon: '🌿' },
+    ]
+  },
+  {
+    group: '😴 Night — Tomorrow\'s Soak + Sleep Block',
+    items: [
+      { id: 'h12', name: 'Soak Tomorrow\'s Legumes (2 min)', desc: 'Cover ½ cup chickpeas / rajma with water now → ready to cook for tomorrow\'s lunch', tags: [['Tomorrow lunch','purple'],['2 min','green']], icon: '🫘' },
+      { id: 'h13', name: 'Stop Eating 2–3 hrs Before Bed', desc: 'If sleeping at 11 PM, no food after 8–8:30 PM. Body needs to be done digesting before deep sleep.', tags: [['Cortisol','purple'],['Sleep quality','blue']], icon: '🚫' },
+      { id: 'h14', name: 'No Screens 1 Hour Before Bed', desc: 'Blue light blocks melatonin. Switch to: book, light stretching, or conversation.', tags: [['Sleep','blue']], icon: '📵' },
+      { id: 'h15', name: 'Consistent Sleep Time (7–8 hrs)', desc: 'Same bedtime + wake time every day including weekends. Non-negotiable.', tags: [['Cortisol','purple'],['7–8 hrs','green']], icon: '🛌' },
+    ]
+  },
+];
+
+const MEALS = [
+  {
+    name: 'Breakfast',
+    time: '7:00 – 8:30 AM',
+    p: { options: 'Greek yogurt (1 cup) · Cottage cheese (paneer) · Scrambled tofu · 2 boiled eggs', tip: 'Eat alone, wait 5 min before fiber' },
+    f: { options: 'Spinach handful · Sliced cucumber · Cherry tomatoes · Mixed greens salad', tip: 'No dressing with carbs in it' },
+    c: { options: 'Rolled oats (½ cup cooked) · 1 slice whole-wheat toast · 1 small banana · Mixed berries', tip: 'Add only after finishing protein + fiber' },
+  },
+  {
+    name: 'Lunch',
+    time: '12:30 – 1:30 PM',
+    p: { options: 'Rajma (kidney beans) · Chana (chickpeas) · Dal · Paneer cubes · Tempeh stir-fry', tip: 'Eat at least 6–8 bites before moving to fiber' },
+    f: { options: 'Kachumber salad · Roasted broccoli · Steamed cauliflower · Mixed vegetable sabzi', tip: 'Non-starchy veg only in this step' },
+    c: { options: 'Brown rice (½ cup) · 1–2 phulka rotis · Quinoa · Sweet potato (small)', tip: 'Keep carb portion to ¼ of your plate' },
+  },
+  {
+    name: 'Dinner',
+    time: '6:30 – 7:30 PM',
+    p: { options: 'Moong dal · Tofu tikka · Paneer bhurji · Soy chunks curry · Lentil soup', tip: 'Lightest meal of the day — smaller protein portion' },
+    f: { options: 'Stir-fried zucchini · Roasted capsicum · Spinach palak · Cucumber raita', tip: 'Focus on cooked veg for easier digestion' },
+    c: { options: '1 small roti · Small serving brown rice · Or skip carbs entirely at dinner', tip: 'Reducing dinner carbs accelerates fat burn overnight' },
+  },
+  {
+    name: 'Snacks (optional)',
+    time: 'Mid-morning / Mid-afternoon',
+    p: { options: 'Handful of almonds (12–15) · Roasted chana · Hemp seeds · Greek yogurt (plain)', tip: 'Protein-forward snacks keep insulin stable' },
+    f: { options: 'Celery sticks · Carrot sticks · Sliced bell peppers', tip: 'Add fiber to snacks to slow any carb absorption' },
+    c: { options: 'Apple or pear · 1 small banana · Brown rice cake', tip: 'Only if genuinely hungry — not out of habit' },
+  },
+];
+
+const PREP_TASKS = [
+  {
+    day: 'Sunday — Bulk Cook & Prep',
+    tasks: [
+      { id: 'p1', name: 'Cook a big batch of dal or rajma', note: 'Makes 4–5 servings for lunch protein all week' },
+      { id: 'p2', name: 'Cook 2–3 cups brown rice or quinoa', note: 'Refrigerates for 5 days in airtight container' },
+      { id: 'p3', name: 'Marinate and bake tofu or paneer', note: 'Cube, season with cumin/turmeric, bake at 200°C for 20 min' },
+      { id: 'p4', name: 'Hard-boil 6 eggs (if not vegan)', note: 'Quick protein source for breakfast all week' },
+      { id: 'p5', name: 'Wash and chop salad greens', note: 'Spinach, cucumber, cherry tomatoes — store in paper-towel-lined containers' },
+      { id: 'p6', name: 'Portion Greek yogurt into 5 containers', note: '150g per container for weekday breakfasts' },
+    ]
+  },
+  {
+    day: 'Mid-Week — Restock (Wednesday)',
+    tasks: [
+      { id: 'p7', name: 'Cook fresh batch of lentils/chana', note: 'Sunday batch likely running low' },
+      { id: 'p8', name: 'Refresh salad greens', note: 'Chop new cucumber, tomatoes, peppers' },
+      { id: 'p9', name: 'Prep snack bags', note: 'Portion almonds (12–15 per bag) and roasted chana into daily snack bags' },
+      { id: 'p10', name: 'Check pantry — restock oats, lentils, brown rice', note: 'Order or shop to avoid running out' },
+    ]
+  },
+  {
+    day: '⚡ Quick Daily Prep (Every Night)',
+    tasks: [
+      { id: 'p11', name: 'Set out tomorrow\'s breakfast protein', note: 'Take yogurt out to fridge-temp, or note what you\'ll cook' },
+      { id: 'p12', name: 'Fill and refrigerate a water bottle', note: 'Drink before your morning walk — stay hydrated fasted' },
+      { id: 'p13', name: 'Set a consistent wake-up alarm', note: 'Non-negotiable — same time daily sets your cortisol rhythm' },
+      { id: 'p14', name: 'Plan tomorrow\'s meals mentally', note: 'Know your P-F-C for each meal before you sleep' },
+    ]
+  },
+  {
+    day: '🥣 Advanced — Batch Recipes',
+    tasks: [
+      { id: 'p15', name: 'Make overnight oats for 3 days', note: 'Oats + Greek yogurt + chia seeds in jars — grab and go' },
+      { id: 'p16', name: 'Blend a week of green smoothie bases', note: 'Spinach + cucumber + ginger — freeze in cubes, blend with protein daily' },
+      { id: 'p17', name: 'Roast a tray of mixed vegetables', note: 'Broccoli, cauliflower, capsicum — use as fiber course all week' },
+      { id: 'p18', name: 'Make a large pot of vegetable soup', note: 'Low-calorie fiber source — have before dinner carbs' },
+      { id: 'p19', name: 'Prepare 5 PFC lunch boxes', note: 'Layer protein, veg, and carb in separate compartments' },
+    ]
+  },
+];
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let state = loadState();
+let selectedDate = todayStr();
+let weekChart = null, weightChart = null;
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem('dailyreset_v2')) || {}; }
+  catch { return {}; }
+}
+
+function saveState() {
+  localStorage.setItem('dailyreset_v2', JSON.stringify(state));
+}
+
+function getDayData(date) {
+  if (!state[date]) state[date] = { habits: {}, weight: null };
+  return state[date];
+}
+
+// ─────────────────────────────────────────────
+//  NAV
+// ─────────────────────────────────────────────
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  event.target.classList.add('active');
+  if (id === 'dashboard') renderDashboard();
+}
+
+// ─────────────────────────────────────────────
+//  DATE
+// ─────────────────────────────────────────────
+function onDateChange() {
+  selectedDate = document.getElementById('datePicker').value;
+  renderToday();
+  renderDashboard();
+}
+
+function initDate() {
+  const dp = document.getElementById('datePicker');
+  dp.value = todayStr();
+  selectedDate = todayStr();
+}
+
+// ─────────────────────────────────────────────
+//  TASK LIST
+// ─────────────────────────────────────────────
+function renderToday() {
+  const data = getDayData(selectedDate);
+  const container = document.getElementById('taskList');
+  container.innerHTML = '';
+
+  const dateObj = new Date(selectedDate + 'T00:00:00');
+  document.getElementById('todayLabel').textContent = dateObj.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'});
+
+  HABITS.forEach(group => {
+    const div = document.createElement('div');
+    div.className = 'habit-group';
+    div.innerHTML = `<div class="habit-group-title">${group.group}</div>`;
+    group.items.forEach(item => {
+      const done = !!data.habits[item.id];
+      const el = document.createElement('div');
+      el.className = 'task-item' + (done ? ' done' : '');
+      el.innerHTML = `
+        <div class="task-check">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path d="M2 6l3 3 5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="task-body">
+          <div class="task-name">${item.icon.length > 2 ? '<span style="margin-right:6px">'+item.icon+'</span>' : '<span style="display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:4px;background:var(--accent);color:#fff;font-size:0.7rem;font-weight:800;margin-right:6px">'+item.icon+'</span>'}${item.name}</div>
+          <div class="task-desc">${item.desc}</div>
+          <div class="task-meta">${item.tags.map(([t,c]) => `<span class="chip ${c}">${t}</span>`).join('')}</div>
+        </div>`;
+      el.onclick = () => toggleHabit(item.id);
+      div.appendChild(el);
+    });
+    container.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function toggleHabit(id) {
+  const data = getDayData(selectedDate);
+  data.habits[id] = !data.habits[id];
+  saveState();
+  renderToday();
+  renderDashboard();
+  if (data.habits[id]) showToast('Habit logged! 💪');
+}
+
+function resetDay() {
+  if (!confirm('Reset all habits for this day?')) return;
+  getDayData(selectedDate).habits = {};
+  saveState();
+  renderToday();
+  renderDashboard();
+}
+
+function updateProgress() {
+  const allIds = HABITS.flatMap(g => g.items.map(i => i.id));
+  const total = allIds.length;
+  const data = getDayData(selectedDate);
+  const done = allIds.filter(id => data.habits[id]).length;
+  const pct = Math.round((done/total)*100);
+
+  document.getElementById('progressLabel').textContent = `${done} of ${total} habits complete`;
+  document.getElementById('progressPct').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+
+  const banner = document.getElementById('completeBanner');
+  if (done === total) banner.classList.add('show');
+  else banner.classList.remove('show');
+}
+
+// ─────────────────────────────────────────────
+//  DASHBOARD
+// ─────────────────────────────────────────────
+function renderDashboard() {
+  renderWeekStrip();
+  renderStats();
+  renderRing();
+  renderHabitBreakdown();
+  renderWeekChart();
+  renderWeightChart();
+}
+
+function renderWeekStrip() {
+  const strip = document.getElementById('weekStrip');
+  strip.innerHTML = '';
+  const today = todayStr();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const hasData = state[ds] && Object.values(state[ds].habits||{}).some(Boolean);
+    const el = document.createElement('div');
+    el.className = 'week-day' + (ds === today ? ' today' : '') + (ds === selectedDate ? ' selected' : '') + (hasData ? ' has-data' : '');
+    el.innerHTML = `<div class="wd-name">${days[d.getDay()]}</div><div class="wd-num">${d.getDate()}</div><div class="wd-dot"></div>`;
+    el.onclick = () => { selectedDate = ds; document.getElementById('datePicker').value = ds; renderToday(); renderDashboard(); };
+    strip.appendChild(el);
+  }
+}
+
+function getDayCompletion(date) {
+  const allIds = HABITS.flatMap(g => g.items.map(i => i.id));
+  const data = getDayData(date);
+  const done = allIds.filter(id => data.habits[id]).length;
+  return Math.round((done / allIds.length) * 100);
+}
+
+function renderStats() {
+  const allIds = HABITS.flatMap(g => g.items.map(i => i.id));
+  const total = allIds.length;
+  const data = getDayData(selectedDate);
+  const done = allIds.filter(id => data.habits[id]).length;
+  document.getElementById('todayCount').textContent = `${done}/${total}`;
+
+  // Weekly avg
+  let sum = 0, count = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0, 10);
+    sum += getDayCompletion(ds); count++;
+  }
+  document.getElementById('weekAvg').textContent = Math.round(sum/count) + '%';
+
+  // Weight
+  const weights = Object.entries(state)
+    .filter(([,v]) => v.weight != null)
+    .sort(([a],[b]) => a.localeCompare(b));
+  if (weights.length) {
+    const latest = weights[weights.length-1][1].weight;
+    document.getElementById('currentWeight').textContent = latest + ' kg';
+    if (weights.length > 1) {
+      const prev = weights[weights.length-2][1].weight;
+      const delta = (latest - prev).toFixed(1);
+      const col = delta <= 0 ? 'var(--green)' : 'var(--red)';
+      document.getElementById('weightDelta').innerHTML = `<span style="color:${col}">${delta > 0 ? '+':''}${delta} kg vs last log</span>`;
+    }
+  }
+
+  // Streak
+  let streak = 0, best = 0, cur = 0;
+  const today = todayStr();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    const pct = getDayCompletion(ds);
+    if (pct >= 80) { cur++; best = Math.max(best, cur); if (i === 0 || streak > 0) streak = cur; }
+    else { if (i > 0) { cur = 0; } }
+  }
+  document.getElementById('streakBadge').textContent = `🔥 ${streak} day streak`;
+  document.getElementById('bestStreak').textContent = best;
+}
+
+function renderRing() {
+  const pct = getDayCompletion(selectedDate);
+  const circumference = 314;
+  const offset = circumference - (circumference * pct / 100);
+  document.getElementById('ringFg').style.strokeDashoffset = offset;
+  document.getElementById('ringPct').textContent = pct + '%';
+}
+
+function renderHabitBreakdown() {
+  const data = getDayData(selectedDate);
+  const groups = HABITS.map(g => {
+    const total = g.items.length;
+    const done = g.items.filter(i => data.habits[i.id]).length;
+    return { name: g.group, done, total };
+  });
+  const el = document.getElementById('habitBreakdown');
+  el.innerHTML = groups.map(g => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:0.73rem;margin-bottom:4px">
+        <span style="color:var(--muted)">${g.name.replace(/^[^\s]+\s/,'')}</span>
+        <span style="color:var(--text)">${g.done}/${g.total}</span>
+      </div>
+      <div class="progress-bar" style="height:5px">
+        <div class="progress-fill" style="width:${Math.round(g.done/g.total*100)}%"></div>
+      </div>
+    </div>`).join('');
+}
+
+function renderWeekChart() {
+  const labels = [], data = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().slice(0,10);
+    labels.push(d.toLocaleDateString('en-US',{weekday:'short'}));
+    data.push(getDayCompletion(ds));
+  }
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  if (weekChart) weekChart.destroy();
+  weekChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: data.map(v => v >= 80 ? 'rgba(34,197,94,0.7)' : v >= 50 ? 'rgba(245,158,11,0.7)' : 'rgba(108,99,255,0.5)'),
+        borderRadius: 6, borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892b0', callback: v => v+'%' } },
+        x: { grid: { display: false }, ticks: { color: '#8892b0' } }
+      }
+    }
+  });
+}
+
+function logWeight() {
+  const val = parseFloat(document.getElementById('weightInput').value);
+  if (!val || val < 30 || val > 300) { showToast('Enter a valid weight (30–300 kg)', true); return; }
+  getDayData(todayStr()).weight = val;
+  saveState();
+  renderDashboard();
+  document.getElementById('weightInput').value = '';
+  showToast('Weight logged! ⚖️');
+}
+
+function renderWeightChart() {
+  const entries = Object.entries(state)
+    .filter(([,v]) => v.weight != null)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .slice(-14);
+  const ctx = document.getElementById('weightChart').getContext('2d');
+  if (weightChart) weightChart.destroy();
+  if (!entries.length) { ctx.clearRect(0,0,1000,200); return; }
+  weightChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: entries.map(([d]) => new Date(d+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})),
+      datasets: [{
+        data: entries.map(([,v]) => v.weight),
+        borderColor: '#6c63ff', backgroundColor: 'rgba(108,99,255,0.1)',
+        fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#6c63ff',
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8892b0', callback: v => v+' kg' } },
+        x: { grid: { display: false }, ticks: { color: '#8892b0' } }
+      }
+    }
+  });
+}
+
+// ─────────────────────────────────────────────
+//  MEALS
+// ─────────────────────────────────────────────
+function renderMeals() {
+  const container = document.getElementById('mealsList');
+  container.innerHTML = MEALS.map(m => `
+    <div class="meal-card">
+      <div class="meal-header">
+        <h3>🌱 ${m.name}</h3>
+        <span class="time">⏰ ${m.time}</span>
+      </div>
+      <div class="pfc-steps">
+        <div class="pfc-step">
+          <div class="pfc-letter pfc-p">P</div>
+          <div class="pfc-items">
+            <div class="pfc-title">① Protein — Eat First</div>
+            <div class="pfc-options">${m.p.options}</div>
+            <div class="pfc-tip">💡 ${m.p.tip}</div>
+          </div>
+        </div>
+        <div class="pfc-step">
+          <div class="pfc-letter pfc-f">F</div>
+          <div class="pfc-items">
+            <div class="pfc-title">② Fiber — Eat Second</div>
+            <div class="pfc-options">${m.f.options}</div>
+            <div class="pfc-tip">💡 ${m.f.tip}</div>
+          </div>
+        </div>
+        <div class="pfc-step">
+          <div class="pfc-letter pfc-c">C</div>
+          <div class="pfc-items">
+            <div class="pfc-title">③ Carbs — Eat Last</div>
+            <div class="pfc-options">${m.c.options}</div>
+            <div class="pfc-tip">💡 ${m.c.tip}</div>
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─────────────────────────────────────────────
+//  MEAL PREP
+// ─────────────────────────────────────────────
+let prepState = loadPrepState();
+
+function loadPrepState() {
+  try { return JSON.parse(localStorage.getItem('dailyreset_prep')) || {}; }
+  catch { return {}; }
+}
+
+function savePrepState() {
+  localStorage.setItem('dailyreset_prep', JSON.stringify(prepState));
+}
+
+function renderPrep() {
+  const container = document.getElementById('prepList');
+  container.innerHTML = '';
+  const allIds = PREP_TASKS.flatMap(s => s.tasks.map(t => t.id));
+  const doneCount = allIds.filter(id => prepState[id]).length;
+  const pct = Math.round(doneCount / allIds.length * 100);
+  document.getElementById('prepLabel').textContent = `${doneCount} of ${allIds.length} tasks done`;
+  document.getElementById('prepPct').textContent = pct + '%';
+  document.getElementById('prepFill').style.width = pct + '%';
+
+  PREP_TASKS.forEach(section => {
+    const div = document.createElement('div');
+    div.className = 'prep-section';
+    div.innerHTML = `<h3>${section.day}</h3>`;
+    section.tasks.forEach(task => {
+      const done = !!prepState[task.id];
+      const el = document.createElement('div');
+      el.className = 'prep-item' + (done ? ' done' : '');
+      el.innerHTML = `
+        <div class="prep-check">
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" ${done?'':'style="display:none"'}>
+            <path d="M1.5 5l2.5 2.5 5-5" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div>
+          <div class="prep-name">${task.name}</div>
+          <div class="prep-note">${task.note}</div>
+        </div>`;
+      el.onclick = () => {
+        prepState[task.id] = !prepState[task.id];
+        savePrepState();
+        renderPrep();
+        if (prepState[task.id]) showToast('Prep task done! 🥗');
+      };
+      div.appendChild(el);
+    });
+    container.appendChild(div);
+  });
+}
+
+function resetPrep() {
+  if (!confirm('Reset all meal prep tasks?')) return;
+  prepState = {};
+  savePrepState();
+  renderPrep();
+}
+
+// ─────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, error = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = error ? 'var(--red)' : 'var(--green)';
+  t.style.color = error ? 'var(--red)' : 'var(--green)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+function init() {
+  initDate();
+  renderToday();
+  renderMeals();
+  renderPrep();
+  renderDashboard();
+}
+
+init();
+</script>
+</body>
+</html>
