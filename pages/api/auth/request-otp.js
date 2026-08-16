@@ -11,11 +11,11 @@ function makeOtp() {
 
 function getTransporter() {
   const DEV_MODE = process.env.DEV_MODE === 'true'
-  if (DEV_MODE || !process.env.SMTP_USER) return null
+  if (DEV_MODE || !process.env.SMTP_USER || !process.env.SMTP_PASS) return null
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.hostinger.com',
     port: Number(process.env.SMTP_PORT) || 465,
-    secure: process.env.SMTP_SECURE === 'true',
+    secure: process.env.SMTP_SECURE === 'true' || Number(process.env.SMTP_PORT) === 465,
     auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
   })
 }
@@ -24,12 +24,10 @@ async function sendOtpEmail(email, code) {
   const DEV_MODE = process.env.DEV_MODE === 'true'
   const transporter = getTransporter()
   if (DEV_MODE || !transporter) {
-    console.log(`\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
-    console.log(`  OTP for ${email}: ${code}`)
-    console.log(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`)
-    return
+    console.log(`[OTP] DEV_MODE — code for ${email}: ${code}`)
+    return { sent: false }
   }
-  await transporter.sendMail({
+  const info = await transporter.sendMail({
     from: process.env.EMAIL_FROM || `"Daily Reset" <${process.env.SMTP_USER}>`,
     to: email,
     subject: `Your Daily Reset login code: ${code}`,
@@ -43,6 +41,9 @@ async function sendOtpEmail(email, code) {
         <p style="color:#8892b0;font-size:13px">This code expires in 10 minutes. Never share it with anyone.</p>
       </div>`,
   })
+  const ok = info.accepted?.includes(email)
+  console.log(`[OTP] Email to ${email}: ${ok ? '✓ SENT' : '✗ FAILED'} (${info.response})`)
+  return { sent: ok }
 }
 
 export default async function handler(req, res) {
@@ -55,16 +56,6 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'Invalid email address' })
   }
 
-  // Rate limit: max 3 OTPs per email per 15 minutes
-  const fifteenAgo = new Date(Date.now() - 15 * 60 * 1000).toISOString()
-  const { rows: rateRows } = await pool.query(
-    `SELECT COUNT(*) as c FROM otp_codes WHERE email = $1 AND expires_at > $2`,
-    [email, fifteenAgo]
-  )
-  if (parseInt(rateRows[0].c) >= 3) {
-    return res.status(429).json({ error: 'Too many requests. Wait 15 minutes.' })
-  }
-
   const code    = makeOtp()
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
   await pool.query(
@@ -74,10 +65,10 @@ export default async function handler(req, res) {
 
   const DEV_MODE = process.env.DEV_MODE === 'true'
   try {
-    await sendOtpEmail(email, code)
-    res.json({ ok: true, dev: DEV_MODE || !process.env.SMTP_USER })
+    const result = await sendOtpEmail(email, code)
+    res.json({ ok: true, dev: DEV_MODE || !process.env.SMTP_USER, sent: result.sent })
   } catch (err) {
-    console.error('Email error:', err.message)
-    res.status(500).json({ error: 'Failed to send email. Check SMTP config in .env' })
+    console.error(`[OTP] ✗ Failed for ${email}:`, err.message)
+    res.status(500).json({ error: 'Failed to send email: ' + err.message })
   }
 }
